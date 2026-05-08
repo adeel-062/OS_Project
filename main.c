@@ -9,6 +9,7 @@
 void runSimulation(Process processes[], int processCount, int timeSlice);
 void automaticMode();
 void manualMode();
+int hasHigherPriorityProcess(Queue readyQueues[], int currentPriority);
 
 int main() {
     int choice;
@@ -101,6 +102,15 @@ void manualMode() {
     runSimulation(processes, processCount, timeSlice);
 }
 
+int hasHigherPriorityProcess(Queue readyQueues[], int currentPriority) {
+    for (int p = PRIORITY_LEVELS - 1; p > currentPriority; p--) {
+        if (!isEmpty(&readyQueues[p])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void runSimulation(Process processes[], int processCount, int timeSlice) {
     Queue readyQueues[PRIORITY_LEVELS];
 
@@ -113,15 +123,32 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
     int currentPid = -1;
     int contextSwitches = 0;
 
+    int ganttChart[1000];
+    int ganttSize = 0;
+
     while (completed < processCount) {
         printf("\n=== Tick %d ===\n", tick);
 
         for (int i = 0; i < processCount; i++) {
-            if (processes[i].arrivalTime == tick && processes[i].state == NEW) {
-                addToReadyQueue(processes, readyQueues, i);
-                printf("P%d arrived and entered Ready queue %d\n", i, processes[i].priority);
-            }
-        }
+        	if (processes[i].arrivalTime == tick && processes[i].state == NEW) {
+                	addToReadyQueue(processes, readyQueues, i);
+                	printf("P%d arrived and entered Ready queue %d\n", i, processes[i].priority);
+            	}
+	}
+
+	if (currentPid != -1) {
+                int currentPriority = processes[currentPid].priority;
+
+                if (hasHigherPriorityProcess(readyQueues, currentPriority)) {
+                	printf("Higher-priority process arrived. P%d preempted immediately\n", currentPid);
+
+        		processes[currentPid].state = READY;
+        		processes[currentPid].timeSliceRemaining = timeSlice;
+        		addToReadyQueue(processes, readyQueues, currentPid);
+
+        		currentPid = -1;
+    		}
+    	}
 
         if (currentPid == -1) {
             currentPid = getNextProcess(readyQueues);
@@ -140,6 +167,8 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
 
         if (currentPid != -1) {
             printf("P%d is running\n", currentPid);
+
+	    ganttChart[ganttSize++] = currentPid;
 
             processes[currentPid].remainingTime--;
             processes[currentPid].timeSliceRemaining--;
@@ -161,6 +190,7 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
         }
         else {
             printf("CPU is idle\n");
+	    ganttChart[ganttSize++] = -1;
         }
 
         tick++;
@@ -198,4 +228,21 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
     printf("Average Turnaround Time: %.2f\n", totalTurnaroundTime / processCount);
     printf("Average Response Time: %.2f\n", totalResponseTime / processCount);
     printf("Total Context Switches: %d\n", contextSwitches);
+
+    printf("\nGantt Trace:\n");
+
+    for (int i = 0; i < ganttSize; i++) {
+        if (ganttChart[i] == -1) {
+            printf("| IDLE ");
+        } else {
+            printf("| P%d ", ganttChart[i]);
+        }
+    }
+    printf("|\n");
+
+    printf("\nTime:\n");
+    for (int i = 0; i <= ganttSize; i++) {
+        printf("%d\t", i);
+    }
+    printf("\n");
 }
