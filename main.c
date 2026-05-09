@@ -6,12 +6,14 @@
 #define MAX_INPUT_PROCESSES 20
 #define DEFAULT_TIME_SLICE 2
 #define AGING_LIMIT 5
+#define MLFQ_ENABLED 1
 
 void runSimulation(Process processes[], int processCount, int timeSlice);
 void automaticMode();
 void manualMode();
 int hasHigherPriorityProcess(Queue readyQueues[], int currentPriority);
 void applyAging(Process processes[], int processCount, Queue readyQueues[]);
+void applyMLFQDemotion(Process processes[], int pid);
 
 int main() {
     int choice;
@@ -148,6 +150,18 @@ void applyAging(Process processes[], int processCount, Queue readyQueues[]) {
     }
 }
 
+void applyMLFQDemotion(Process processes[], int pid) {
+    if (MLFQ_ENABLED && processes[pid].priority > 0) {
+        int oldPriority = processes[pid].priority;
+        processes[pid].priority--;
+
+        printf("MLFQ demotion: P%d priority decreased from %d to %d\n",
+               processes[pid].pid,
+               oldPriority,
+               processes[pid].priority);
+    }
+}
+
 void runSimulation(Process processes[], int processCount, int timeSlice) {
     Queue readyQueues[PRIORITY_LEVELS];
 
@@ -220,10 +234,15 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
                 currentPid = -1;
             }
             else if (processes[currentPid].timeSliceRemaining == 0) {
+		printf("P%d quantum expired\n", currentPid);
+
+		applyMLFQDemotion(processes, currentPid);
+
                 processes[currentPid].state = READY;
                 processes[currentPid].timeSliceRemaining = timeSlice;
                 addToReadyQueue(processes, readyQueues, currentPid);
-                printf("P%d quantum expired, preempted and requeued\n", currentPid);
+
+		printf("P%d quantum expired, preempted and requeued\n", currentPid);
                 currentPid = -1;
             }
         }
