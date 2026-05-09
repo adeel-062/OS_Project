@@ -11,7 +11,9 @@ typedef enum {
 
 typedef struct {
     int pid;
-    int priority;
+    int priority;          // current/final priority, changes due to aging and MLFQ
+    int initialPriority;   // original priority entered by user
+
     int arrivalTime;
     int burstTime;
     int remainingTime;

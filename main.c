@@ -46,10 +46,10 @@ void automaticMode() {
     int processCount = 4;
     int timeSlice = DEFAULT_TIME_SLICE;
 
-    processes[0] = (Process){0, 3, 0, 5, 5, timeSlice, 0, 0, -1, 0, 0, NEW};
-    processes[1] = (Process){1, 2, 1, 4, 4, timeSlice, 0, 0, -1, 0, 0, NEW};
-    processes[2] = (Process){2, 3, 2, 3, 3, timeSlice, 0, 0, -1, 0, 0, NEW};
-    processes[3] = (Process){3, 1, 3, 2, 2, timeSlice, 0, 0, -1, 0, 0, NEW};
+    processes[0] = (Process){0, 3, 3, 0, 5, 5, timeSlice, 0, 0, -1, 0, 0, NEW};
+    processes[1] = (Process){1, 2, 2, 1, 4, 4, timeSlice, 0, 0, -1, 0, 0, NEW};
+    processes[2] = (Process){2, 3, 3, 2, 3, 3, timeSlice, 0, 0, -1, 0, 0, NEW};
+    processes[3] = (Process){3, 1, 1, 3, 2, 2, timeSlice, 0, 0, -1, 0, 0, NEW};
 
     printf("\nAutomatic Mode Selected.\n");
     printf("Running predefined workload...\n");
@@ -65,7 +65,10 @@ void manualMode() {
     printf("\nManual Mode Selected.\n");
 
     printf("Enter number of processes: ");
-    scanf("%d", &processCount);
+    if (scanf("%d", &processCount) != 1) {
+        printf("Invalid input. Please enter a number.\n");
+        return;
+    }
 
     if (processCount <= 0 || processCount > MAX_INPUT_PROCESSES) {
         printf("Invalid number of processes. Must be between 1 and %d.\n", MAX_INPUT_PROCESSES);
@@ -73,7 +76,10 @@ void manualMode() {
     }
 
     printf("Enter time slice: ");
-    scanf("%d", &timeSlice);
+    if (scanf("%d", &timeSlice) != 1) {
+        printf("Invalid input. Please enter a number.\n");
+        return;
+    }
 
     if (timeSlice <= 0) {
         printf("Invalid time slice. Time slice must be greater than 0.\n");
@@ -88,20 +94,24 @@ void manualMode() {
         printf("\nEnter details for P%d\n", i);
 
         printf("Arrival Time: ");
-        scanf("%d", &arrivalTime);
-
-        printf("Burst Time: ");
-        scanf("%d", &burstTime);
-
-        printf("Priority (0 lowest, 3 highest): ");
-        scanf("%d", &priority);
-
-        if (arrivalTime < 0 || burstTime <= 0 || priority < 0 || priority >= PRIORITY_LEVELS) {
-            printf("Invalid input for P%d. Please restart and enter valid values.\n", i);
+        if (scanf("%d", &arrivalTime) != 1 || arrivalTime < 0) {
+            printf("Invalid arrival time. Arrival time cannot be negative.\n");
             return;
         }
 
-        processes[i] = (Process){i, priority, arrivalTime, burstTime, burstTime, timeSlice, 0, 0, -1, 0, 0, NEW};
+        printf("Burst Time: ");
+        if (scanf("%d", &burstTime) != 1 || burstTime <= 0) {
+            printf("Invalid burst time. Burst time must be greater than 0.\n");
+            return;
+        }
+
+        printf("Priority (0 lowest, 3 highest): ");
+        if (scanf("%d", &priority) != 1 || priority < 0 || priority >= PRIORITY_LEVELS) {
+            printf("Invalid priority. Priority must be between 0 and %d.\n", PRIORITY_LEVELS - 1);
+            return;
+        }
+
+        processes[i] = (Process){i, priority, priority, arrivalTime, burstTime, burstTime, timeSlice, 0, 0, -1, 0, 0, NEW};
     }
 
     runSimulation(processes, processCount, timeSlice);
@@ -261,7 +271,7 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
                 processes[currentPid].timeSliceRemaining = timeSlice;
                 addToReadyQueue(processes, readyQueues, currentPid);
 
-		printf("P%d quantum expired, preempted and requeued\n", currentPid);
+		printf("P%d preempted and requeued\n", currentPid);
                 currentPid = -1;
             }
         }
@@ -280,7 +290,7 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
     float totalResponseTime = 0;
 
     printf("\nFinal Process Statistics:\n");
-    printf("PID\tPriority\tArrival\tBurst\tCompletion\tTurnaround\tWaiting\tResponse\n");
+    printf("PID\tInitPr\tFinalPr\tArrival\tBurst\tCompletion\tTurnaround\tWaiting\tResponse\n");
 
     for (int i = 0; i < processCount; i++) {
         processes[i].turnaroundTime = processes[i].completionTime - processes[i].arrivalTime;
@@ -290,8 +300,9 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
         totalTurnaroundTime += processes[i].turnaroundTime;
         totalResponseTime += processes[i].responseTime;
 
-        printf("P%d\t%d\t\t%d\t%d\t%d\t\t%d\t\t%d\t%d\n",
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\t\t%d\t\t%d\t%d\n",
                processes[i].pid,
+               processes[i].initialPriority,
                processes[i].priority,
                processes[i].arrivalTime,
                processes[i].burstTime,
