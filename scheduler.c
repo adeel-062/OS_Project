@@ -4,6 +4,7 @@ void addToReadyQueue(Process processes[], Queue readyQueues[], int pid) {
     int pr = processes[pid].priority;
     enqueue(&readyQueues[pr], pid);
     processes[pid].state = READY;
+    processes[pid].readyWaitTime = 0;
 }
 
 int getNextProcess(Queue readyQueues[]) {

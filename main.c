@@ -5,11 +5,13 @@
 
 #define MAX_INPUT_PROCESSES 20
 #define DEFAULT_TIME_SLICE 2
+#define AGING_LIMIT 5
 
 void runSimulation(Process processes[], int processCount, int timeSlice);
 void automaticMode();
 void manualMode();
 int hasHigherPriorityProcess(Queue readyQueues[], int currentPriority);
+void applyAging(Process processes[], int processCount, Queue readyQueues[]);
 
 int main() {
     int choice;
@@ -41,10 +43,10 @@ void automaticMode() {
     int processCount = 4;
     int timeSlice = DEFAULT_TIME_SLICE;
 
-    processes[0] = (Process){0, 3, 0, 5, 5, timeSlice, 0, 0, -1, 0, NEW};
-    processes[1] = (Process){1, 2, 1, 4, 4, timeSlice, 0, 0, -1, 0, NEW};
-    processes[2] = (Process){2, 3, 2, 3, 3, timeSlice, 0, 0, -1, 0, NEW};
-    processes[3] = (Process){3, 1, 3, 2, 2, timeSlice, 0, 0, -1, 0, NEW};
+    processes[0] = (Process){0, 3, 0, 5, 5, timeSlice, 0, 0, -1, 0, 0, NEW};
+    processes[1] = (Process){1, 2, 1, 4, 4, timeSlice, 0, 0, -1, 0, 0, NEW};
+    processes[2] = (Process){2, 3, 2, 3, 3, timeSlice, 0, 0, -1, 0, 0, NEW};
+    processes[3] = (Process){3, 1, 3, 2, 2, timeSlice, 0, 0, -1, 0, 0, NEW};
 
     printf("\nAutomatic Mode Selected.\n");
     printf("Running predefined workload...\n");
@@ -96,7 +98,7 @@ void manualMode() {
             return;
         }
 
-        processes[i] = (Process){i, priority, arrivalTime, burstTime, burstTime, timeSlice, 0, 0, -1, 0, NEW};
+        processes[i] = (Process){i, priority, arrivalTime, burstTime, burstTime, timeSlice, 0, 0, -1, 0, 0, NEW};
     }
 
     runSimulation(processes, processCount, timeSlice);
@@ -109,6 +111,41 @@ int hasHigherPriorityProcess(Queue readyQueues[], int currentPriority) {
         }
     }
     return 0;
+}
+
+void applyAging(Process processes[], int processCount, Queue readyQueues[]) {
+    int aged = 0;
+
+    for (int i = 0; i < processCount; i++) {
+        if (processes[i].state == READY) {
+            processes[i].readyWaitTime++;
+
+            if (processes[i].readyWaitTime >= AGING_LIMIT &&
+                processes[i].priority < PRIORITY_LEVELS - 1) {
+
+                int oldPriority = processes[i].priority;
+                processes[i].priority++;
+                processes[i].readyWaitTime = 0;
+                aged = 1;
+
+                printf("Aging applied: P%d priority increased from %d to %d\n",
+                       processes[i].pid, oldPriority, processes[i].priority);
+            }
+        }
+    }
+
+    if (aged) {
+        for (int p = 0; p < PRIORITY_LEVELS; p++) {
+            initQueue(&readyQueues[p]);
+        }
+
+        for (int i = 0; i < processCount; i++) {
+            if (processes[i].state == READY) {
+                int pr = processes[i].priority;
+                enqueue(&readyQueues[pr], i);
+            }
+        }
+    }
 }
 
 void runSimulation(Process processes[], int processCount, int timeSlice) {
@@ -135,6 +172,8 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
                 	printf("P%d arrived and entered Ready queue %d\n", i, processes[i].priority);
             	}
 	}
+
+	applyAging(processes, processCount, readyQueues);
 
 	if (currentPid != -1) {
                 int currentPriority = processes[currentPid].priority;

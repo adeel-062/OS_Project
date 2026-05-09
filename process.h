@@ -22,6 +22,8 @@ typedef struct {
     int responseTime;
     int completionTime;
 
+    int readyWaitTime;
+
     State state;
 } Process;
 
