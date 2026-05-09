@@ -14,6 +14,7 @@ void manualMode();
 int hasHigherPriorityProcess(Queue readyQueues[], int currentPriority);
 void applyAging(Process processes[], int processCount, Queue readyQueues[]);
 void applyMLFQDemotion(Process processes[], int pid);
+void printReadyQueueSnapshot(Queue readyQueues[], int tick);
 
 int main() {
     int choice;
@@ -162,6 +163,24 @@ void applyMLFQDemotion(Process processes[], int pid) {
     }
 }
 
+void printReadyQueueSnapshot(Queue readyQueues[], int tick) {
+    printf("\nReady Queue Snapshot at Tick %d:\n", tick);
+
+    for (int p = PRIORITY_LEVELS - 1; p >= 0; p--) {
+        printf("Q%d: ", p);
+
+        if (isEmpty(&readyQueues[p])) {
+            printf("empty");
+        } else {
+            for (int i = readyQueues[p].front; i <= readyQueues[p].rear; i++) {
+                printf("P%d ", readyQueues[p].items[i]);
+            }
+        }
+
+        printf("\n");
+    }
+}
+
 void runSimulation(Process processes[], int processCount, int timeSlice) {
     Queue readyQueues[PRIORITY_LEVELS];
 
@@ -187,8 +206,6 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
             	}
 	}
 
-	applyAging(processes, processCount, readyQueues);
-
 	if (currentPid != -1) {
                 int currentPriority = processes[currentPid].priority;
 
@@ -202,6 +219,8 @@ void runSimulation(Process processes[], int processCount, int timeSlice) {
         		currentPid = -1;
     		}
     	}
+
+	printReadyQueueSnapshot(readyQueues, tick);
 
         if (currentPid == -1) {
             currentPid = getNextProcess(readyQueues);
